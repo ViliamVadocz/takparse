@@ -33,11 +33,13 @@ impl Tag {
     }
 
     /// Getter for the `key`.
+    #[must_use]
     pub fn key(&self) -> &str {
         &self.key
     }
 
     /// Getter for the `value`.
+    #[must_use]
     pub fn value(&self) -> &str {
         &self.value
     }
@@ -98,7 +100,9 @@ impl FromStr for Tag {
         let mut chars = s.chars();
 
         // open bracket
-        let Some('[') = chars.next() else {Err(ParseTagError::NoOpeningBracket)?};
+        let Some('[') = chars.next() else {
+            Err(ParseTagError::NoOpeningBracket)?
+        };
 
         // key
         let mut opened = false;
@@ -160,7 +164,7 @@ impl FromStr for Tag {
             Err(ParseTagError::NoClosingBracket)?;
         }
         if chars.count() != 0 {
-            Err(ParseTagError::GarbageAfterTag)?
+            Err(ParseTagError::GarbageAfterTag)?;
         }
 
         Ok(Self::new(key, value))
@@ -233,13 +237,13 @@ impl FromStr for GameResult {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
-            "F-0" => GameResult::White(WinReason::Flat),
-            "R-0" => GameResult::White(WinReason::Road),
-            "1-0" => GameResult::White(WinReason::Other),
-            "0-F" => GameResult::Black(WinReason::Flat),
-            "0-R" => GameResult::Black(WinReason::Road),
-            "0-1" => GameResult::Black(WinReason::Other),
-            "1/2-1/2" => GameResult::Draw,
+            "F-0" => Self::White(WinReason::Flat),
+            "R-0" => Self::White(WinReason::Road),
+            "1-0" => Self::White(WinReason::Other),
+            "0-F" => Self::Black(WinReason::Flat),
+            "0-R" => Self::Black(WinReason::Road),
+            "0-1" => Self::Black(WinReason::Other),
+            "1/2-1/2" => Self::Draw,
             _ => Err(ParseGameResultError::Invalid)?,
         })
     }
@@ -308,6 +312,7 @@ impl Ptn {
     /// # use takparse::Ptn;
     /// Ptn::new(vec![], vec![], vec![], None); // panics because `comments.len() != moves.len() + 1`
     /// ```
+    #[must_use]
     pub fn new(
         tags: Vec<Tag>,
         moves: Vec<Move>,
@@ -324,16 +329,19 @@ impl Ptn {
     }
 
     /// Getter for `tags`.
+    #[must_use]
     pub fn tags(&self) -> &[Tag] {
         &self.tags
     }
 
     /// Getter for `moves`.
+    #[must_use]
     pub fn moves(&self) -> &[Move] {
         &self.moves
     }
 
     /// Getter for `comments`.
+    #[must_use]
     pub fn comments(&self) -> &[Vec<String>] {
         &self.comments
     }
@@ -361,6 +369,7 @@ impl Ptn {
     /// assert_eq!(ptn.get_tag("Foo"), None);
     /// # Ok::<(), ParseMoveError>(())
     /// ```
+    #[must_use]
     pub fn get_tag(&self, key: &str) -> Option<&str> {
         for tag in &self.tags {
             if tag.key() == key {
@@ -372,12 +381,14 @@ impl Ptn {
 
     /// Search for a tag with the key `Site` and return the value.
     /// If the tag is not found [`None`] is returned.
+    #[must_use]
     pub fn site(&self) -> Option<&str> {
         self.get_tag("Site")
     }
 
     /// Search for a tag with the key `Event` and return the value.
     /// If the tag is not found [`None`] is returned.
+    #[must_use]
     pub fn event(&self) -> Option<&str> {
         self.get_tag("Event")
     }
@@ -401,6 +412,7 @@ impl Ptn {
     /// let ptn = Ptn::new(vec![Tag::new("NotDate", "Whatever")], vec![], vec![vec![]], None);
     /// assert_eq!(ptn.date(), None);
     /// ```
+    #[must_use]
     pub fn date(&self) -> Option<NaiveDate> {
         let s = self.get_tag("Date")?;
         let mut split = s.split('.');
@@ -432,6 +444,7 @@ impl Ptn {
     /// let ptn = Ptn::new(vec![Tag::new("NotTime", "Whatever")], vec![], vec![vec![]], None);
     /// assert_eq!(ptn.time(), None);
     /// ```
+    #[must_use]
     pub fn time(&self) -> Option<NaiveTime> {
         let s = self.get_tag("Time")?;
         let mut split = s.split(':');
@@ -447,6 +460,7 @@ impl Ptn {
     /// Search for a tag with the key `Player1` and return the value.
     /// This is the name of the player playing as white.
     /// If the tag is not found [`None`] is returned.
+    #[must_use]
     pub fn player_1(&self) -> Option<&str> {
         self.get_tag("Player1")
     }
@@ -454,6 +468,7 @@ impl Ptn {
     /// Search for a tag with the key `Player2` and return the value.
     /// This is the name of the player playing as black.
     /// If the tag is not found [`None`] is returned.
+    #[must_use]
     pub fn player_2(&self) -> Option<&str> {
         self.get_tag("Player2")
     }
@@ -461,6 +476,7 @@ impl Ptn {
     /// Search for a tag with the key `Rating1` and return the value, parsed as an integer.
     /// This gets the rating of the player playing as white.
     /// If the tag is not found [`None`] is returned.
+    #[must_use]
     pub fn rating_1(&self) -> Option<i32> {
         self.get_tag("Rating1")?.parse().ok()
     }
@@ -468,6 +484,7 @@ impl Ptn {
     /// Search for a tag with the key `Rating2` and return the value, parsed as an integer.
     /// This gets the rating of the player playing as black.
     /// If the tag is not found [`None`] is returned.
+    #[must_use]
     pub fn rating_2(&self) -> Option<i32> {
         self.get_tag("Rating2")?.parse().ok()
     }
@@ -477,12 +494,14 @@ impl Ptn {
     /// This is used to tell us the time controls used for the game.
     /// It is not parsed because a standard format is not specified.
     /// If the tag is not found [`None`] is returned.
+    #[must_use]
     pub fn clock(&self) -> Option<&str> {
         self.get_tag("Clock")
     }
 
     /// Search for the tag with the key `Opening` and return the value.
     /// If the tag is not found [`None`] is returned.
+    #[must_use]
     pub fn opening(&self) -> Option<&str> {
         self.get_tag("Opening")
     }
@@ -509,6 +528,7 @@ impl Ptn {
     /// let ptn = Ptn::new(vec![], vec![], vec![vec![]], None);
     /// assert_eq!(ptn.result(), None);
     /// ```
+    #[must_use]
     pub fn result(&self) -> Option<GameResult> {
         if self.result.is_some() {
             return self.result;
@@ -533,6 +553,7 @@ impl Ptn {
     /// let ptn = Ptn::new(vec![Tag::new("Largeness", "123")], vec![], vec![vec![]], None);
     /// assert_eq!(ptn.time(), None);
     /// ```
+    #[must_use]
     pub fn size(&self) -> Option<usize> {
         self.get_tag("Size")?.parse().ok()
     }
@@ -554,6 +575,7 @@ impl Ptn {
     /// let ptn = Ptn::new(vec![Tag::new("Komi", "-0.5")], vec![], vec![vec![]], None);
     /// assert_eq!(ptn.komi(), Some(0));
     /// ```
+    #[must_use]
     pub fn komi(&self) -> Option<i32> {
         self.half_komi().map(|x| x / 2)
     }
@@ -582,6 +604,7 @@ impl Ptn {
     /// let ptn = Ptn::new(vec![Tag::new("Komi", "-0.5")], vec![], vec![vec![]], None);
     /// assert_eq!(ptn.half_komi(), Some(-1));
     /// ```
+    #[must_use]
     pub fn half_komi(&self) -> Option<i32> {
         let s = self.get_tag("Komi")?;
 
@@ -615,6 +638,7 @@ impl Ptn {
     /// let ptn = Ptn::new(vec![Tag::new("Fs", "1")], vec![], vec![vec![]], None);
     /// assert_eq!(ptn.flats(), None);
     /// ```
+    #[must_use]
     pub fn flats(&self) -> Option<u32> {
         self.get_tag("Flats")?.parse().ok()
     }
@@ -635,6 +659,7 @@ impl Ptn {
     /// let ptn = Ptn::new(vec![Tag::new("Capstones", "1")], vec![], vec![vec![]], None);
     /// assert_eq!(ptn.caps(), None);
     /// ```
+    #[must_use]
     pub fn caps(&self) -> Option<u32> {
         self.get_tag("Caps")?.parse().ok()
     }
@@ -655,6 +680,7 @@ impl Ptn {
     /// let ptn = Ptn::new(vec![Tag::new("TeePeeEs", ":)")], vec![], vec![vec![]], None);
     /// assert_eq!(ptn.tps(), None);
     /// ```
+    #[must_use]
     pub fn tps(&self) -> Option<Tps> {
         self.get_tag("TPS")?.parse().ok()
     }
@@ -662,6 +688,15 @@ impl Ptn {
 
 impl Display for Ptn {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        // Helper function for joining comment groups together.
+        fn format_comments(comments: &Vec<String>) -> String {
+            if comments.is_empty() {
+                String::new()
+            } else {
+                format!(" {{{}}}", comments.join("} {"))
+            }
+        }
+
         // Display tags.
         for tag in &self.tags {
             writeln!(f, "{tag}")?;
@@ -672,15 +707,6 @@ impl Display for Ptn {
         if let Some(game_comments) = comment_groups.next() {
             if !game_comments.is_empty() {
                 write!(f, "\n{{{}}}", game_comments.join("} {"))?;
-            }
-        }
-
-        // Helper function for joining comment groups together.
-        fn format_comments(comments: &Vec<String>) -> String {
-            if comments.is_empty() {
-                "".into()
-            } else {
-                format!(" {{{}}}", comments.join("} {"))
             }
         }
 
@@ -744,13 +770,12 @@ pub enum ParsePtnError {
 
 impl Display for ParsePtnError {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        use ParsePtnError::*;
         match self {
-            Tag(err) => err.fmt(f),
-            Move(err) => err.fmt(f),
-            IncompleteMoveNum => "PTN ended with an incomplete move number".fmt(f),
-            UnclosedComment => "PTN ended while in still in comment".fmt(f),
-            GarbageAfterResult => "non whitespace after game result is not allowed".fmt(f),
+            Self::Tag(err) => err.fmt(f),
+            Self::Move(err) => err.fmt(f),
+            Self::IncompleteMoveNum => "PTN ended with an incomplete move number".fmt(f),
+            Self::UnclosedComment => "PTN ended while in still in comment".fmt(f),
+            Self::GarbageAfterResult => "non whitespace after game result is not allowed".fmt(f),
         }
     }
 }
@@ -799,13 +824,13 @@ impl FromStr for Ptn {
         let mut tag = String::new();
         let mut last_char = None;
         for c in chars.by_ref() {
+            #[allow(clippy::enum_glob_use)]
             use ParsePtnTagState::*;
             // state transition table
             state = match (state, c) {
                 (NotInTag, '[') => Start,
-                (Start, '"') => Value,
                 (Value, '\\') => Escape,
-                (Escape, _) => Value,
+                (Start, '"') | (Escape, _) => Value,
                 (Value, '"') => End,
                 (End, ']') => NotInTag,
                 (NotInTag, c) if !c.is_whitespace() => Moves,
@@ -843,8 +868,10 @@ impl FromStr for Ptn {
         let mut comment_group = Vec::new();
         let mut chunk = String::new();
         for c in once(last_char.unwrap()).chain(chars.by_ref()) {
+            #[allow(clippy::enum_glob_use)]
             use ParsePtnMovesState::*;
             // state transition table
+            #[allow(clippy::match_same_arms)]
             let new_state = match (state, c) {
                 (Outside | Move, '{') => Comment,
                 (Outside, '0'..='9') => MoveNum,
@@ -968,7 +995,7 @@ mod tests {
         );
         assert_eq!(
             r#"[\e\s\\c\ap\e\\ "\\\\\"\\\""]"#.parse(),
-            Ok(Tag::new(r#"\e\s\\c\ap\e\\"#, "\\\\\"\\\""))
+            Ok(Tag::new(r"\e\s\\c\ap\e\\", "\\\\\"\\\""))
         );
         assert_eq!(
             r#"[  lots of space     "room to breathe"    ]"#.parse(),
@@ -976,7 +1003,7 @@ mod tests {
         );
         assert_eq!(
             r#"[ !_%#@ [($ )#@]\" \\\"\"]][] " ]"#.parse(),
-            Ok(Tag::new(r#"!_%#@ [($ )#@]\"#, " \\\"\"]][] "))
+            Ok(Tag::new(r"!_%#@ [($ )#@]\", " \\\"\"]][] "))
         );
     }
 
@@ -1056,7 +1083,7 @@ mod tests {
                 r#"[   very   spacious   "and  wasteful"    ]"#,
                 r#"[very   spacious "and  wasteful"]"#,
             ),
-        ])
+        ]);
     }
 
     #[test]
@@ -1087,7 +1114,7 @@ mod tests {
             "a6", "f6", "d4", "c4", "d3", "c3", "d5", "c5", "d2", "Ce4", "c2", "e3", "e2", "b2",
             "Cb3", "1e4<1", "1d3<1", "Sd1", "a3", "1d1+1",
         ];
-        let comment_groups = (0..(moves.len() + 1)).map(|_| Vec::new()).collect();
+        let comment_groups = (0..=moves.len()).map(|_| Vec::new()).collect();
         assert_eq!(
             ptn.parse::<Ptn>().unwrap(),
             Ptn::new(
@@ -1104,7 +1131,7 @@ mod tests {
                 ],
                 moves
                     .into_iter()
-                    .map(|m| m.parse::<Move>())
+                    .map(str::parse)
                     .collect::<Result<_, _>>()
                     .unwrap(),
                 comment_groups,
@@ -1150,7 +1177,7 @@ mod tests {
                 vec![Tag::new("Size", "6"),],
                 vec!["a6", "f6", "d4", "c4", "d3", "c3", "d5", "c5", "d2", "Ce4", "c2", "e3",]
                     .into_iter()
-                    .map(|m| m.parse::<Move>())
+                    .map(str::parse)
                     .collect::<Result<_, _>>()
                     .unwrap(),
                 vec![
@@ -1163,10 +1190,10 @@ mod tests {
                     vec!["ef".into(), "{{{".into()],
                     vec!["aww man".into(), "x".into()],
                     vec!["y".into()],
-                    vec!["".into(), "".into()],
-                    vec!["".into(), "hello".into(), "".into()],
+                    vec![String::new(), String::new()],
+                    vec![String::new(), "hello".into(), String::new()],
                     vec![],
-                    vec!["".into()],
+                    vec![String::new()],
                     vec!["well".into(), "this".into(), "is".into()],
                     vec!["quite".into(), "strange".into()],
                     vec!["don't you think".into(), "  ".into()],
@@ -1185,8 +1212,7 @@ mod tests {
             "a3", "a2", "a3-", "b2", "d4", "b3", "b4", "c4", "c3", "b5", "a4", "a3", "c5", "b6",
             "d4<", "a5", "c6", "a3-", "Sa3",
         ];
-        let mut comment_groups: Vec<Vec<String>> =
-            (0..(moves.len() + 1)).map(|_| Vec::new()).collect();
+        let mut comment_groups: Vec<Vec<String>> = (0..=moves.len()).map(|_| Vec::new()).collect();
         comment_groups[5].push("hi".into());
         assert_eq!(
             ptn.parse::<Ptn>().unwrap(),
@@ -1200,7 +1226,7 @@ mod tests {
                 ],
                 moves
                     .into_iter()
-                    .map(|m| m.parse::<Move>())
+                    .map(str::parse)
                     .collect::<Result<_, _>>()
                     .unwrap(),
                 comment_groups,
@@ -1221,7 +1247,7 @@ mod tests {
                 vec![Tag::new("Player1", "a"), Tag::new("Player2", "b"),],
                 moves
                     .into_iter()
-                    .map(|m| m.parse::<Move>())
+                    .map(str::parse)
                     .collect::<Result<_, _>>()
                     .unwrap(),
                 comment_groups,
@@ -1242,7 +1268,7 @@ mod tests {
                 vec![],
                 moves
                     .into_iter()
-                    .map(|m| m.parse::<Move>())
+                    .map(str::parse)
                     .collect::<Result<_, _>>()
                     .unwrap(),
                 comment_groups,
@@ -1255,14 +1281,14 @@ mod tests {
     fn starting_as_black() {
         let ptn = r#"[TPS "2,x5/x6/x2,2,x3/x3,1,1,x/x6/x5,1 2 3"] -- Cd4 d2 e4 c2"#;
         let moves = vec!["Cd4", "d2", "e4", "c2"];
-        let comment_groups: Vec<Vec<String>> = (0..moves.len() + 1).map(|_| Vec::new()).collect();
+        let comment_groups: Vec<Vec<String>> = (0..=moves.len()).map(|_| Vec::new()).collect();
         assert_eq!(
             ptn.parse::<Ptn>().unwrap(),
             Ptn::new(
                 vec![Tag::new("TPS", "2,x5/x6/x2,2,x3/x3,1,1,x/x6/x5,1 2 3")],
                 moves
                     .into_iter()
-                    .map(|m| m.parse::<Move>())
+                    .map(str::parse)
                     .collect::<Result<_, _>>()
                     .unwrap(),
                 comment_groups,
@@ -1307,7 +1333,7 @@ mod tests {
         assert_eq!(ptn.caps(), Some(1));
         assert_eq!(ptn.flats(), Some(2));
         assert_eq!(ptn.clock(), Some("15:0 +15"));
-        assert_eq!(ptn.date(), Some(NaiveDate::from_ymd(2022, 10, 27)));
+        assert_eq!(ptn.date(), NaiveDate::from_ymd_opt(2022, 10, 27));
         assert_eq!(ptn.event(), Some("hi"));
         assert_eq!(ptn.komi(), Some(2));
         assert_eq!(ptn.half_komi(), Some(4));
@@ -1318,7 +1344,7 @@ mod tests {
         assert_eq!(ptn.rating_2(), Some(1233));
         assert_eq!(ptn.site(), Some("ptn.ninja"));
         assert_eq!(ptn.size(), Some(6));
-        assert_eq!(ptn.time(), Some(NaiveTime::from_hms(7, 49, 59)));
+        assert_eq!(ptn.time(), NaiveTime::from_hms_opt(7, 49, 59));
         assert_eq!(
             ptn.tps(),
             Tps::from_str("x6/1,x2,2,x2/x,2,1,1,x2/x,2,x4/x,1,x,1,x2/x6 2 32").ok()

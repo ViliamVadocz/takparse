@@ -16,4 +16,4 @@ keywords = ["tak", "game", "parse", "display"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = "0.4"
+chrono = "0.4.26"

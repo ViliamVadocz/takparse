@@ -35,6 +35,7 @@ impl Square {
     /// # use takparse::Square;
     /// assert_eq!(Square::new(25, 8).to_string(), "z9"); // fails
     /// ```
+    #[must_use]
     pub fn new(column: u8, row: u8) -> Self {
         assert!(column < 8);
         assert!(row < 8);
@@ -65,9 +66,11 @@ impl Square {
     /// assert_eq!(square.shift(Direction::Down, 3).to_string(), "c0"); // fails
     /// # Ok::<(), ParseSquareError>(())
     /// ```
+    #[must_use]
     pub fn shift(self, direction: Direction, amount: i8) -> Self {
         let Self { column, row } = self;
         let (x, y) = direction.offset();
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_wrap)]
         Self::new(
             x.checked_mul(amount)
                 .unwrap()
@@ -81,12 +84,14 @@ impl Square {
     }
 
     /// Getter for `column`.
-    pub fn column(self) -> u8 {
+    #[must_use]
+    pub const fn column(self) -> u8 {
         self.column
     }
 
     /// Getter for `row`.
-    pub fn row(self) -> u8 {
+    #[must_use]
+    pub const fn row(self) -> u8 {
         self.row
     }
 
@@ -114,15 +119,15 @@ impl Square {
     /// assert_eq!(square.checked_step(Direction::Right, 5), None);
     /// # Ok::<(), ParseSquareError>(())
     /// ```
+    #[must_use]
     pub fn checked_step(self, direction: Direction, board_size: u8) -> Option<Self> {
         self.assert_on_board(board_size);
-        use Direction::*;
         let (column, row) = (self.column, self.row);
         let (column, row) = match direction {
-            Up => (column, row.checked_add(1).filter(|&y| y < board_size)?),
-            Down => (column, row.checked_sub(1)?),
-            Left => (column.checked_sub(1)?, row),
-            Right => (column.checked_add(1).filter(|&x| x < board_size)?, row),
+            Direction::Up => (column, row.checked_add(1).filter(|&y| y < board_size)?),
+            Direction::Down => (column, row.checked_sub(1)?),
+            Direction::Left => (column.checked_sub(1)?, row),
+            Direction::Right => (column.checked_add(1).filter(|&x| x < board_size)?, row),
         };
         Some(Self { column, row })
     }
@@ -206,12 +211,10 @@ impl Error for ParseSquareError {}
 
 impl Display for ParseSquareError {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        use ParseSquareError::*;
-
         match self {
-            Malformed => "malformed square",
-            BadColumn => "found column not in range 'a'-'h'",
-            BadRow => "found row not in range '1'-'8'",
+            Self::Malformed => "malformed square",
+            Self::BadColumn => "found column not in range 'a'-'h'",
+            Self::BadRow => "found row not in range '1'-'8'",
         }
         .fmt(f)
     }
@@ -221,8 +224,6 @@ impl FromStr for Square {
     type Err = ParseSquareError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use ParseSquareError::*;
-
         let mut chars = s.chars();
         if let Some(column_char) = chars.next() {
             if let Some(row_char) = chars.next() {
@@ -230,11 +231,12 @@ impl FromStr for Square {
                     let column = (column_char as u32).wrapping_sub('a' as u32);
                     let row = (row_char as u32).wrapping_sub('1' as u32);
                     return if column >= 8 {
-                        Err(BadColumn)
+                        Err(ParseSquareError::BadColumn)
                     } else if row >= 8 {
-                        Err(BadRow)
+                        Err(ParseSquareError::BadRow)
                     } else {
-                        Ok(Square {
+                        #[allow(clippy::cast_possible_truncation)]
+                        Ok(Self {
                             row: row as u8,
                             column: column as u8,
                         })
@@ -243,7 +245,7 @@ impl FromStr for Square {
             }
         }
 
-        Err(Malformed)
+        Err(ParseSquareError::Malformed)
     }
 }
 
@@ -273,7 +275,8 @@ impl Direction {
     /// assert_eq!(Direction::Up.offset(), (0, 1));
     /// assert_eq!(Direction::Left.offset(), (-1, 0));
     /// ```
-    pub fn offset(self) -> (i8, i8) {
+    #[must_use]
+    pub const fn offset(self) -> (i8, i8) {
         match self {
             Self::Up => (0, 1),
             Self::Down => (0, -1),
@@ -293,12 +296,11 @@ impl Direction {
     /// ```
     #[must_use]
     pub const fn rotate(self) -> Self {
-        use Direction::*;
         match self {
-            Up => Right,
-            Down => Left,
-            Left => Up,
-            Right => Down,
+            Self::Up => Self::Right,
+            Self::Down => Self::Left,
+            Self::Left => Self::Up,
+            Self::Right => Self::Down,
         }
     }
 
@@ -313,12 +315,11 @@ impl Direction {
     /// ```
     #[must_use]
     pub const fn mirror(self) -> Self {
-        use Direction::*;
         match self {
-            Up => Down,
-            Down => Up,
-            Left => Left,
-            Right => Right,
+            Self::Up => Self::Down,
+            Self::Down => Self::Up,
+            Self::Left => Self::Left,
+            Self::Right => Self::Right,
         }
     }
 }
@@ -354,11 +355,9 @@ impl Error for ParseDirectionError {}
 
 impl Display for ParseDirectionError {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        use ParseDirectionError::*;
-
         match self {
-            BadLength => "direction did not consist of exactly 1 character",
-            BadChar => "unknown direction character (not '+', '-', '>', '<')",
+            Self::BadLength => "direction did not consist of exactly 1 character",
+            Self::BadChar => "unknown direction character (not '+', '-', '>', '<')",
         }
         .fmt(f)
     }
@@ -368,8 +367,6 @@ impl FromStr for Direction {
     type Err = ParseDirectionError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use ParseDirectionError::*;
-
         let mut chars = s.chars();
         if let Some(c) = chars.next() {
             if chars.next().is_none() {
@@ -378,12 +375,12 @@ impl FromStr for Direction {
                     '-' => Self::Down,
                     '>' => Self::Right,
                     '<' => Self::Left,
-                    _ => Err(BadChar)?,
+                    _ => Err(ParseDirectionError::BadChar)?,
                 });
             }
         }
 
-        Err(BadLength)
+        Err(ParseDirectionError::BadLength)
     }
 }
 
@@ -412,11 +409,11 @@ impl FromStr for Direction {
 ///     println!("{count}");
 /// }
 /// ```
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DropCounts(u32);
 
 impl DropCounts {
-    fn new(p: Pattern) -> Self {
+    const fn new(p: Pattern) -> Self {
         Self((p.0 as u32) << 24)
     }
 }
@@ -425,12 +422,12 @@ impl Iterator for DropCounts {
     type Item = u32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.0 != 0 {
+        if self.0 == 0 {
+            None
+        } else {
             let prev = self.0.trailing_zeros();
             self.0 &= self.0 - 1;
             Some(self.0.trailing_zeros() - prev)
-        } else {
-            None
         }
     }
 }
@@ -500,30 +497,16 @@ impl Pattern {
     /// }
     /// # Ok::<(), ParseMoveError>(())
     /// ```
+    #[must_use]
     pub fn from_mask(mask: u8) -> Self {
         assert!(mask != 0x00 && mask != 0xFF);
         Self(mask)
     }
 
     /// Getter for `mask`.
-    pub fn mask(self) -> u8 {
+    #[must_use]
+    pub const fn mask(self) -> u8 {
         self.0
-    }
-
-    /// Consumes the `Pattern` and returns the corresponding `DropCounts`.
-    ///
-    /// This is the go-to way for iterating over drop counts.
-    ///
-    /// # Examples
-    /// ```
-    /// # use takparse::Pattern;
-    /// let pattern = Pattern::from_mask(0b0111_0000);
-    /// for count in pattern.drop_counts() {
-    ///     // prints 1, 1, 2
-    ///     println!("{count}");
-    /// }
-    pub fn drop_counts(self) -> DropCounts {
-        DropCounts::new(self)
     }
 
     /// Calculates how many pieces are picked up.
@@ -538,7 +521,8 @@ impl Pattern {
     /// }
     /// # Ok::<(), ParseMoveError>(())
     /// ```
-    pub fn count_pieces(self) -> u32 {
+    #[must_use]
+    pub const fn count_pieces(self) -> u32 {
         u8::BITS - self.0.trailing_zeros()
     }
 
@@ -556,7 +540,8 @@ impl Pattern {
     /// }
     /// # Ok::<(), ParseMoveError>(())
     /// ```
-    pub fn count_squares(self) -> u32 {
+    #[must_use]
+    pub const fn count_squares(self) -> u32 {
         self.0.count_ones()
     }
 
@@ -573,11 +558,12 @@ impl Pattern {
     /// }
     /// # Ok::<(), ParseMoveError>(())
     /// ```
-    pub fn count_final_square_pieces(self) -> u32 {
+    #[must_use]
+    pub const fn count_final_square_pieces(self) -> u32 {
         self.0.leading_zeros() + 1
     }
 
-    unsafe fn drop_all_unchecked(pieces: u32) -> Pattern {
+    const unsafe fn drop_all_unchecked(pieces: u32) -> Self {
         Self(1u8.rotate_right(pieces))
     }
 }
@@ -592,12 +578,33 @@ impl FromIterator<u32> for Pattern {
     }
 }
 
+/// Iterate over the drop counts contained in a pattern.
+///
+/// # Examples
+/// ```
+/// # use takparse::Pattern;
+/// let pattern = Pattern::from_mask(0b0111_0000);
+/// for count in pattern {
+///     // prints 1, 1, 2
+///     println!("{count}");
+/// }
+impl IntoIterator for Pattern {
+    type Item = u32;
+
+    type IntoIter = DropCounts;
+
+    fn into_iter(self) -> Self::IntoIter {
+        DropCounts::new(self)
+    }
+}
+
 impl Display for Pattern {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         if self.count_squares() == 1 {
             Ok(())
         } else {
-            self.drop_counts()
+            #[allow(clippy::cast_possible_truncation)]
+            self.into_iter()
                 .try_for_each(|count| ((b'0' + count as u8) as char).fmt(f))
         }
     }
@@ -620,13 +627,11 @@ impl Error for ParsePatternError {}
 
 impl Display for ParsePatternError {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        use ParsePatternError::*;
-
         match self {
-            Malformed => "found unexpected characters in pattern",
-            Ambiguous => "found ambiguous empty pattern (its interpretation is dependent on taken piece count)",
-            TooLong => "pattern drops pieces on more squares than possible on largest supported board size (8)",
-            TooBig => "pattern drops more pieces than highest supported carry limit (8)",
+            Self::Malformed => "found unexpected characters in pattern",
+            Self::Ambiguous => "found ambiguous empty pattern (its interpretation is dependent on taken piece count)",
+            Self::TooLong => "pattern drops pieces on more squares than possible on largest supported board size (8)",
+            Self::TooBig => "pattern drops more pieces than highest supported carry limit (8)",
         }
         .fmt(f)
     }
@@ -636,14 +641,12 @@ impl FromStr for Pattern {
     type Err = ParsePatternError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use ParsePatternError::{self as E, *};
-
-        fn shift(c: char) -> Result<u32, E> {
+        const fn shift(c: char) -> Result<u32, ParsePatternError> {
             let shift = (c as u32).wrapping_sub('1' as u32);
             if shift < 8 {
                 Ok(shift)
             } else {
-                Err(Malformed)
+                Err(ParsePatternError::Malformed)
             }
         }
 
@@ -654,16 +657,16 @@ impl FromStr for Pattern {
             if shift < acc.trailing_zeros() {
                 Ok(((acc >> 1) | 0x80) >> shift)
             } else {
-                Err(TooBig)
+                Err(ParsePatternError::TooBig)
             }
         })?;
 
         match chars.try_fold(false, |_, c| shift(c).map(|_| true)) {
             Ok(false) => match segment {
-                0 => Err(Ambiguous),
+                0 => Err(ParsePatternError::Ambiguous),
                 s => Ok(Self(s)),
             },
-            Ok(true) => Err(TooLong),
+            Ok(true) => Err(ParsePatternError::TooLong),
             Err(e) => Err(e),
         }
     }
@@ -713,17 +716,20 @@ impl Move {
     /// assert_eq!(my_move, parsed_move);
     /// # Ok::<(), ParseMoveError>(())
     /// ```
-    pub fn new(square: Square, kind: MoveKind) -> Self {
+    #[must_use]
+    pub const fn new(square: Square, kind: MoveKind) -> Self {
         Self { square, kind }
     }
 
     /// Getter for `square`.
-    pub fn square(self) -> Square {
+    #[must_use]
+    pub const fn square(self) -> Square {
         self.square
     }
 
     /// Getter for `kind`.
-    pub fn kind(self) -> MoveKind {
+    #[must_use]
+    pub const fn kind(self) -> MoveKind {
         self.kind
     }
 }
@@ -792,12 +798,10 @@ impl From<ParsePatternError> for ParseMoveError {
 
 impl Error for ParseMoveError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        use ParseMoveError::*;
-
         Some(match self {
-            Square(e) => e,
-            Direction(e) => e,
-            Pattern(e) => e,
+            Self::Square(e) => e,
+            Self::Direction(e) => e,
+            Self::Pattern(e) => e,
             _ => return None,
         })
     }
@@ -805,19 +809,17 @@ impl Error for ParseMoveError {
 
 impl Display for ParseMoveError {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        use ParseMoveError::*;
-
         if let Some(e) = self.source() {
             Display::fmt(&e, f)
         } else {
             match self {
-                Malformed => "not a valid ptn move",
-                BadPieceOrCount => "move prefix was not a valid piece or count",
-                TruncatedSpread => "spread is missing both a direction and a pattern",
-                BadPlacement => "placement has trailing characters",
-                CountMismatch => "number of pieces taken does not match number of dropped",
-                BadCrush => "declared crush but dropping more than one piece on final square",
-                Square(_) | Direction(_) | Pattern(_) => unreachable!(),
+                Self::Malformed => "not a valid ptn move",
+                Self::BadPieceOrCount => "move prefix was not a valid piece or count",
+                Self::TruncatedSpread => "spread is missing both a direction and a pattern",
+                Self::BadPlacement => "placement has trailing characters",
+                Self::CountMismatch => "number of pieces taken does not match number of dropped",
+                Self::BadCrush => "declared crush but dropping more than one piece on final square",
+                Self::Square(_) | Self::Direction(_) | Self::Pattern(_) => unreachable!(),
             }
             .fmt(f)
         }
@@ -829,11 +831,9 @@ impl FromStr for Move {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::Pattern as PatternType;
-        use ParseMoveError::*;
-
         let s = s.trim_end_matches(['?', '!', '\'', '"']);
         if s.len() < 2 || !s.is_ascii() {
-            return Err(Malformed);
+            return Err(ParseMoveError::Malformed);
         }
 
         let mut piece = None;
@@ -851,7 +851,7 @@ impl FromStr for Move {
                     if c < 8 {
                         taken_count = Some(c + 1);
                     } else {
-                        return Err(BadPieceOrCount);
+                        return Err(ParseMoveError::BadPieceOrCount);
                     }
                 }
                 rest = &s[3..];
@@ -863,18 +863,18 @@ impl FromStr for Move {
             square,
             kind: if rest.is_empty() {
                 if taken_count.is_some() {
-                    Err(TruncatedSpread)?
+                    Err(ParseMoveError::TruncatedSpread)?
                 } else {
                     MoveKind::Place(piece.unwrap_or_default())
                 }
             } else if piece.is_some() {
-                Err(BadPlacement)?
+                Err(ParseMoveError::BadPlacement)?
             } else {
                 let direction = rest[..1].parse()?;
 
                 let crush = rest.strip_suffix('*').map(|r| rest = r).is_some();
 
-                let taken_count = taken_count.unwrap_or(1) as u32;
+                let taken_count = u32::from(taken_count.unwrap_or(1));
                 let pattern = rest[1..].parse().or_else(|e| match e {
                     ParsePatternError::Ambiguous => {
                         Ok(unsafe { PatternType::drop_all_unchecked(taken_count) })
@@ -883,9 +883,9 @@ impl FromStr for Move {
                 })?;
 
                 if pattern.count_pieces() != taken_count {
-                    Err(CountMismatch)?
+                    Err(ParseMoveError::CountMismatch)?
                 } else if crush && pattern.count_final_square_pieces() != 1 {
-                    Err(BadCrush)?
+                    Err(ParseMoveError::BadCrush)?
                 } else {
                     MoveKind::Spread(direction, pattern)
                 }
@@ -911,7 +911,7 @@ mod tests {
             "4h4-13",
             "7a5>3112",
             "8h1<1112111",
-        ])
+        ]);
     }
 
     #[test]
@@ -926,7 +926,7 @@ mod tests {
             ("a5??", "a5"),
             ("b8\"!", "b8"),
             ("8g3<112121*'!?", "8g3<112121"),
-        ])
+        ]);
     }
 
     #[test]

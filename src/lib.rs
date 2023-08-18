@@ -1,6 +1,7 @@
-#![warn(missing_docs)]
 //! `takparse` is a library which provides helpful types and functions
 //! for parsing objects related to the abstract strategy board game Tak.
+#![warn(missing_docs)]
+#![warn(clippy::pedantic, clippy::nursery, clippy::style)]
 
 #[cfg(test)]
 mod test_utils;
@@ -62,11 +63,9 @@ impl Error for ParsePieceError {}
 
 impl Display for ParsePieceError {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        use ParsePieceError::*;
-
         match self {
-            TooLong => "piece consisted of multiple characters",
-            BadChar => "unknown piece character (not 'F', 'S', 'C')",
+            Self::TooLong => "piece consisted of multiple characters",
+            Self::BadChar => "unknown piece character (not 'F', 'S', 'C')",
         }
         .fmt(f)
     }
@@ -76,21 +75,19 @@ impl FromStr for Piece {
     type Err = ParsePieceError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use ParsePieceError::*;
-
         let mut chars = s.chars();
 
         let c = chars.next();
 
         if chars.next().is_some() {
-            Err(TooLong)?
+            Err(ParsePieceError::TooLong)?;
         }
 
         Ok(match c.unwrap_or('F') {
             'F' => Self::Flat,
             'S' => Self::Wall,
             'C' => Self::Cap,
-            _ => Err(BadChar)?,
+            _ => Err(ParsePieceError::BadChar)?,
         })
     }
 }

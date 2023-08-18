@@ -22,6 +22,7 @@ pub fn transform<
         .for_each(|(from, to)| assert_eq!(from.parse::<T>().unwrap().to_string(), to));
 }
 
+#[allow(clippy::needless_pass_by_value)]
 pub fn error<'a, T: FromStr<Err = E> + Debug, E: Debug + Eq, I: IntoIterator<Item = &'a str>>(
     cases: I,
     err: E,

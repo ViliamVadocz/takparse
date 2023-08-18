@@ -96,7 +96,8 @@ impl Stack {
     }
 
     /// Getter for `top`.
-    pub fn top(&self) -> Piece {
+    #[must_use]
+    pub const fn top(&self) -> Piece {
         self.top
     }
 
@@ -118,13 +119,17 @@ impl Stack {
     }
 
     /// Get the color of the top piece. This is the last color in `colors`.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn top_color(&self) -> Color {
-        *self.colors.last().unwrap()
+        *self.colors.last().expect("stack should not be empty")
     }
 
     /// Get the color of the bottom piece. This is first color in `colors`.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn bottom_color(&self) -> Color {
-        *self.colors.first().unwrap()
+        *self.colors.first().expect("stack should not be empty")
     }
 }
 
@@ -137,22 +142,22 @@ impl FromStr for Stack {
 
         let mut i = s.chars();
         while let Some(c) = i.next() {
-            match c.to_string().parse() {
-                Ok(color) => colors.push(color),
-                _ => {
-                    top = once(c)
-                        .chain(i)
-                        .collect::<String>()
-                        .parse()
-                        .map_err(|_| ParseTpsError::InvalidPiece)?;
-                    break;
-                }
+            if let Ok(color) = c.to_string().parse() {
+                colors.push(color);
+            } else {
+                top = once(c)
+                    .chain(i)
+                    .collect::<String>()
+                    .parse()
+                    .map_err(|_| ParseTpsError::InvalidPiece)?;
+                break;
             }
         }
 
-        match colors.len() {
-            0 => Err(ParseTpsError::MissingColorOfPiece),
-            _ => Ok(Self { top, colors }),
+        if colors.is_empty() {
+            Err(ParseTpsError::MissingColorOfPiece)
+        } else {
+            Ok(Self { top, colors })
         }
     }
 }
@@ -177,7 +182,7 @@ pub enum ExtendedSquare {
 }
 
 impl ExtendedSquare {
-    fn iter(&self) -> Iter {
+    const fn iter(&self) -> Iter {
         Iter::new(self)
     }
 }
@@ -195,7 +200,7 @@ impl FromStr for ExtendedSquare {
                     Err(p) if *p.kind() == IntErrorKind::Empty => 1,
                     _ => return Err(ParseTpsError::InvalidRunLength),
                 };
-                Ok(ExtendedSquare::EmptySquares(run_length))
+                Ok(Self::EmptySquares(run_length))
             }
             _ => s.parse().map(Self::Stack),
         }
@@ -220,7 +225,7 @@ struct Iter<'a> {
 }
 
 impl<'a> Iter<'a> {
-    pub fn new(es: &'a ExtendedSquare) -> Self {
+    pub const fn new(es: &'a ExtendedSquare) -> Self {
         match es {
             ExtendedSquare::Stack(s) => Self {
                 item: Some(s),
@@ -235,12 +240,11 @@ impl<'a> Iterator for Iter<'a> {
     type Item = Option<&'a Stack>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.count {
-            0 => None,
-            _ => {
-                self.count -= 1;
-                Some(self.item)
-            }
+        if self.count == 0 {
+            None
+        } else {
+            self.count -= 1;
+            Some(self.item)
         }
     }
 
@@ -316,6 +320,7 @@ impl Tps {
     /// assert_eq!(tps, "112C,x2/x3/x3 2 10".parse()?);
     /// # Ok::<(), ParseTpsError>(())
     /// ```
+    #[must_use]
     pub unsafe fn new_unchecked(
         mut board: Vec<Vec<ExtendedSquare>>,
         active_player: Color,
@@ -393,17 +398,20 @@ impl Tps {
     /// assert_eq!(tps.size(), 3);
     /// # Ok::<(), ParseTpsError>(())
     /// ```
+    #[must_use]
     pub fn size(&self) -> usize {
         self.board.len()
     }
 
     /// Getter for `color`.
-    pub fn color(&self) -> Color {
+    #[must_use]
+    pub const fn color(&self) -> Color {
         self.color
     }
 
     /// Getter for `full_move`.
-    pub fn full_move(&self) -> usize {
+    #[must_use]
+    pub const fn full_move(&self) -> usize {
         self.full_move.get()
     }
 
@@ -422,6 +430,7 @@ impl Tps {
     /// assert_eq!(tps.ply(), 44);
     /// # Ok::<(), ParseTpsError>(())
     /// ```
+    #[must_use]
     pub fn ply(&self) -> usize {
         (self.full_move() - 1) * 2 + usize::from(Color::White != self.color())
     }
@@ -437,8 +446,12 @@ impl Tps {
     /// assert_eq!(Tps::starting_position(4), "x4/x4/x4/x4 1 1".parse()?);
     /// # Ok::<(), ParseTpsError>(())
     /// ```
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn starting_position(size: usize) -> Self {
-        start_position_tps(size).parse().unwrap()
+        start_position_tps(size)
+            .parse()
+            .expect("starting row should be valid TPS")
     }
 }
 
@@ -451,7 +464,7 @@ fn start_position_tps(size: usize) -> String {
 }
 
 fn canonicalize(board: &mut [Vec<ExtendedSquare>]) {
-    board.iter_mut().for_each(|row| {
+    for row in &mut *board {
         row.dedup_by(|item, acc| {
             if let ExtendedSquare::EmptySquares(acc) = acc {
                 if let ExtendedSquare::EmptySquares(item) = item {
@@ -462,7 +475,7 @@ fn canonicalize(board: &mut [Vec<ExtendedSquare>]) {
             false
         });
         row.retain(|es| *es != ExtendedSquare::EmptySquares(0));
-    });
+    }
 }
 
 impl FromStr for Tps {
@@ -506,7 +519,7 @@ impl FromStr for Tps {
             board
         };
 
-        Ok(Tps {
+        Ok(Self {
             board,
             color,
             full_move,
@@ -545,9 +558,6 @@ pub enum ParseTpsError {
     WrongSegmentCount,
     /// Returned when the color of the player to move is missing.
     MissingColor,
-    /// This variant is never returned.
-    #[deprecated]
-    MissingPiece,
     /// Returned if there is a piece specifier without a color.
     MissingColorOfPiece,
     /// Is the color in a stack is not '1' or '2' then this variant is used.
@@ -566,18 +576,15 @@ impl Error for ParseTpsError {}
 
 impl Display for ParseTpsError {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        use ParseTpsError::*;
-
         match *self {
-            WrongSegmentCount => "found incorrect number of segments",
-            MissingColor => "missing required color annotation",
-            MissingPiece => "missing required piece annotation",
-            MissingColorOfPiece => "piece missing required color annotation",
-            InvalidColor => "found color other than \"1\" or \"2\"",
-            InvalidPiece => "found piece other than \"S\" or \"C\"",
-            InvalidRunLength => "malformed adjacent empty square count",
-            InvalidFullMove => "malformed full move counter",
-            NonSquareBoard => "length of board row different than column",
+            Self::WrongSegmentCount => "found incorrect number of segments",
+            Self::MissingColor => "missing required color annotation",
+            Self::MissingColorOfPiece => "piece missing required color annotation",
+            Self::InvalidColor => "found color other than \"1\" or \"2\"",
+            Self::InvalidPiece => "found piece other than \"S\" or \"C\"",
+            Self::InvalidRunLength => "malformed adjacent empty square count",
+            Self::InvalidFullMove => "malformed full move counter",
+            Self::NonSquareBoard => "length of board row different than column",
         }
         .fmt(f)
     }
@@ -707,7 +714,7 @@ mod tests {
                 "1111C,x,2122212221122111S,x/1221,x0,x0,2F,x0,22C,212S/x2,x,x1/x,1S,x,x 2 40",
                 "1111C,x,2122212221122111S,x/1221,2,22C,212S/x4/x,1S,x2 2 40",
             ),
-        ])
+        ]);
     }
 
     #[test]

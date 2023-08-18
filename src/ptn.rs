@@ -394,7 +394,7 @@ impl FromStr for Direction {
 /// # use takparse::{Move, MoveKind, ParseMoveError};
 /// let spread: Move = "6a1+123".parse()?;
 /// if let MoveKind::Spread(_direction, pattern) = spread.kind() {
-///     let counts: Vec<u32> = pattern.drop_counts().into_iter().collect();
+///     let counts: Vec<u32> = pattern.into_iter().collect();
 ///     assert_eq!(counts, vec![1, 2, 3]);
 /// }
 /// # Ok::<(), ParseMoveError>(())
@@ -404,7 +404,7 @@ impl FromStr for Direction {
 /// # use takparse::Pattern;
 /// let pattern = Pattern::from_mask(0b0010_1100);
 /// // for loops can omit `.into_iter()`
-/// for count in pattern.drop_counts() {
+/// for count in pattern {
 ///     // prints 1 2 3
 ///     println!("{count}");
 /// }

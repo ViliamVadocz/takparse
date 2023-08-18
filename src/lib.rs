@@ -5,9 +5,11 @@
 #[cfg(test)]
 mod test_utils;
 
+mod file;
 mod ptn;
 mod tps;
 
+pub use file::*;
 pub use ptn::*;
 pub use tps::*;
 
@@ -18,8 +20,6 @@ use std::{
 };
 
 // TODO: serde, tests
-
-// TODO: full ptn strings
 
 /// Enum representing the piece type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
